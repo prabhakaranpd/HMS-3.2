@@ -1,0 +1,6 @@
+node_modules/
+database/hospital.db
+database/backups/*.db
+.env
+.DS_Store
+*.log

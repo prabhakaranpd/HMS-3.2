@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HMS 3.0 - Admin Panel</title>
+  
+  <!-- Shared CSS -->
+  <link rel="stylesheet" href="/shared/css/variables.css">
+  <link rel="stylesheet" href="/shared/css/layout.css">
+  <link rel="stylesheet" href="/shared/css/components.css">
+  
+  <!-- Admin CSS -->
+  <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body>
+
+  <div class="admin-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">HMS 3.0</div>
+        <div class="sidebar-subtitle">Admin Panel</div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-item active" data-tab="dashboard">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </div>
+        <div class="nav-item" data-tab="users">
+          <span class="nav-icon">👥</span>
+          <span>User Management</span>
+        </div>
+        <div class="nav-item" data-tab="security">
+          <span class="nav-icon">🔒</span>
+          <span>Security</span>
+        </div>
+        <div class="nav-item" data-tab="backup">
+          <span class="nav-icon">💾</span>
+          <span>Backup</span>
+        </div>
+        <div class="nav-item" data-tab="sms" style="opacity: 0.5; cursor: not-allowed;">
+          <span class="nav-icon">📱</span>
+          <span>SMS Config</span>
+          <span class="badge badge-secondary" style="font-size: 10px; padding: 2px 6px;">Soon</span>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">A</div>
+          <div class="user-details">
+            <div class="user-name" id="userName">Admin</div>
+            <div class="user-role" id="userRole">Administrator</div>
+          </div>
+        </div>
+        <a href="/logout" class="btn btn-ghost w-full" style="text-align: center;">Logout</a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Dashboard Tab -->
+      <section id="dashboard" class="tab-content active">
+        <div class="content-header">
+          <h1 class="page-title">Dashboard</h1>
+          <p class="page-subtitle">Welcome to HMS 3.0 Admin Panel</p>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-label">Total Users</div>
+              <div class="stat-icon primary">👥</div>
+            </div>
+            <div class="stat-value" id="totalUsers">-</div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-label">Active Sessions</div>
+              <div class="stat-icon success">🟢</div>
+            </div>
+            <div class="stat-value" id="activeSessions">-</div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-label">Today's Patients</div>
+              <div class="stat-icon warning">🏥</div>
+            </div>
+            <div class="stat-value" id="todayPatients">-</div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-label">Total Patients</div>
+              <div class="stat-icon info">📋</div>
+            </div>
+            <div class="stat-value" id="totalPatients">-</div>
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-header">Recent Activity</div>
+            <div class="card-body">
+              <ul class="activity-list" id="activityList">
+                <li class="activity-item">
+                  <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <p>No recent activity</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Users Tab -->
+      <section id="users" class="tab-content">
+        <div class="content-header">
+          <h1 class="page-title">User Management</h1>
+          <p class="page-subtitle">Manage system users and roles</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header flex justify-between items-center">
+            <span>All Users</span>
+            <button class="btn btn-primary" id="addUserBtn">+ Add User</button>
+          </div>
+          <div class="card-body">
+            <table class="table" id="usersTable">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Full Name</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <tr>
+                  <td colspan="6" class="text-center">Loading...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Security Tab -->
+      <section id="security" class="tab-content">
+        <div class="content-header">
+          <h1 class="page-title">Security</h1>
+          <p class="page-subtitle">Manage sessions and login history</p>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-header">Active Sessions</div>
+            <div class="card-body">
+              <table class="table" id="sessionsTable">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>IP Address</th>
+                    <th>Login Time</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="sessionsTableBody">
+                  <tr>
+                    <td colspan="4" class="text-center">Loading...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">Login History (Last 30 days)</div>
+            <div class="card-body">
+              <div style="max-height: 400px; overflow-y: auto;">
+                <table class="table" id="loginHistoryTable">
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Login Time</th>
+                      <th>Duration</th>
+                    </tr>
+                  </thead>
+                  <tbody id="loginHistoryBody">
+                    <tr>
+                      <td colspan="3" class="text-center">Loading...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Backup Tab -->
+      <section id="backup" class="tab-content">
+        <div class="content-header">
+          <h1 class="page-title">Database Backup</h1>
+          <p class="page-subtitle">Manage database backups and restore</p>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-header">Manual Backup</div>
+            <div class="card-body">
+              <p class="mb-3">Create and download a backup of the hospital database.</p>
+              <button class="btn btn-primary w-full" id="downloadBackupBtn">
+                📥 Download Backup Now
+              </button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">Auto Backup Settings</div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" id="autoBackupEnabled">
+                  <span>Enable automatic daily backup</span>
+                </label>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">Backup Time</label>
+                <input type="time" class="form-input" id="backupTime" value="23:00">
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">Retention Period (days)</label>
+                <input type="number" class="form-input" id="retentionDays" value="30" min="1" max="365">
+              </div>
+              
+              <button class="btn btn-success w-full" id="saveBackupSettings">Save Settings</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-3">
+          <div class="card-header">Available Backups</div>
+          <div class="card-body">
+            <div id="backupsList">Loading...</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- User Modal -->
+  <div class="modal-overlay" id="userModal">
+    <div class="modal">
+      <div class="modal-header" id="modalTitle">Add User</div>
+      <div class="modal-body">
+        <form id="userForm">
+          <input type="hidden" id="userId">
+          
+          <div class="form-group">
+            <label class="form-label">Username *</label>
+            <input type="text" class="form-input" id="username" required minlength="3">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input type="text" class="form-input" id="fullName">
+          </div>
+          
+          <div class="form-group" id="passwordGroup">
+            <label class="form-label">Password *</label>
+            <input type="password" class="form-input" id="password" minlength="6">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Role *</label>
+            <select class="form-select" id="role" required>
+              <option value="">Select role...</option>
+              <option value="admin">Admin</option>
+              <option value="reception">Reception</option>
+              <option value="doctor">Doctor</option>
+              <option value="nurse">Nurse</option>
+              <option value="lab">Lab</option>
+              <option value="pharmacy">Pharmacy</option>
+              <option value="management">Management</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label class="flex items-center gap-2">
+              <input type="checkbox" id="isActive" checked>
+              <span>Active</span>
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="cancelUserBtn">Cancel</button>
+        <button class="btn btn-primary" id="saveUserBtn">Save User</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Password Reset Modal -->
+  <div class="modal-overlay" id="passwordModal">
+    <div class="modal">
+      <div class="modal-header">Reset Password</div>
+      <div class="modal-body">
+        <form id="passwordForm">
+          <input type="hidden" id="passwordUserId">
+          
+          <p class="mb-3">Reset password for: <strong id="passwordUsername"></strong></p>
+          
+          <div class="form-group">
+            <label class="form-label">New Password *</label>
+            <input type="password" class="form-input" id="newPassword" required minlength="6">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="cancelPasswordBtn">Cancel</button>
+        <button class="btn btn-primary" id="savePasswordBtn">Reset Password</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/shared/js/api.js"></script>
+  <script src="/shared/js/utils.js"></script>
+  <script src="/admin/js/navigation.js"></script>
+  <script src="/admin/js/dashboard.js"></script>
+  <script src="/admin/js/users.js"></script>
+  <script src="/admin/js/security.js"></script>
+  <script src="/admin/js/backup.js"></script>
+  <script src="/admin/js/main.js"></script>
+
+</body>
+</html>

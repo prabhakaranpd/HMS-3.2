@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HMS 3.0 - Reception</title>
+  
+  <link rel="stylesheet" href="/shared/css/variables.css">
+  <link rel="stylesheet" href="/shared/css/layout.css">
+  <link rel="stylesheet" href="/shared/css/components.css">
+  <link rel="stylesheet" href="/reception/css/reception.css">
+</head>
+<body>
+
+  <div class="reception-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo sidebar-text">HMS 3.0</div>
+        <div class="sidebar-subtitle sidebar-text">Reception</div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-item active" data-tab="dashboard">
+          <span class="nav-icon">📊</span>
+          <span class="sidebar-text">Dashboard</span>
+        </div>
+        <div class="nav-item" data-tab="register">
+          <span class="nav-icon">📝</span>
+          <span class="sidebar-text">Register Patient</span>
+        </div>
+        <div class="nav-item" data-tab="records">
+          <span class="nav-icon">📋</span>
+          <span class="sidebar-text">View Records</span>
+        </div>
+        <div class="nav-item" data-tab="legacy-viewer">
+          <span class="nav-icon">📚</span>
+          <span class="sidebar-text">Legacy Data</span>
+        </div>
+        <div class="nav-item" data-tab="import-export">
+          <span class="nav-icon">📤</span>
+          <span class="sidebar-text">Import/Export</span>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">R</div>
+          <div class="user-details sidebar-text">
+            <div class="user-name" id="userName">Reception</div>
+            <div class="user-role" id="userRole">Staff</div>
+          </div>
+        </div>
+        <a href="/logout" class="btn btn-ghost w-full sidebar-text" style="text-align: center;">Logout</a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Queue Stats -->
+      <div class="queue-stat">
+        <div class="queue-stat-value" id="queueCount">-</div>
+        <div class="queue-stat-label">Patients in Queue</div>
+      </div>
+
+      <!-- Dashboard Tab with Smart Search -->
+      <section id="dashboard" class="tab-content active">
+        <div class="modern-card">
+          <div class="modern-card-header">
+            <h2>🔍 Smart Search</h2>
+          </div>
+          <div class="modern-card-body">
+            <div class="search-container">
+              <input 
+                type="text" 
+                id="smartSearchInput" 
+                class="form-input" 
+                placeholder="Search by RegNo, Mobile, Name, Father, Mother, Address..."
+                style="font-size: 16px; padding: 14px; margin-bottom: 20px;"
+              >
+              <div id="smartSearchResults"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Register Tab -->
+      <section id="register" class="tab-content">
+        <div class="modern-card">
+          <div class="modern-card-header">
+            <h2>📝 Patient Registration</h2>
+          </div>
+          <div class="modern-card-body">
+            <form id="registerForm">
+              <div class="registration-form">
+                <!-- Row 1: RegNo (2) : Name (8) -->
+                <div class="form-row" style="grid-template-columns: 2fr 8fr;">
+                  <div class="form-group">
+                    <label class="form-label">RegNo</label>
+                    <input type="text" class="form-input" id="displayRegNo" disabled style="background: #f0f4ff; font-weight: 700; color: #667eea; text-align: center;">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Patient Name <span class="required-star">*</span></label>
+                    <input type="text" class="form-input" id="name" required placeholder="ENTER FULL NAME">
+                  </div>
+                </div>
+
+                <!-- Row 2: DOB (2) : Age (2) : Gender (2) : Mobile (4) -->
+                <div class="form-row" style="grid-template-columns: 2fr 2fr 2fr 4fr;">
+                  <div class="form-group">
+                    <label class="form-label">Date of Birth</label>
+                    <input type="date" class="form-input" id="dob">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Age</label>
+                    <div class="age-display" id="ageDisplay" style="width: 100%; height: 48px; display: flex; align-items: center; justify-content: center;">-</div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Gender <span class="required-star">*</span></label>
+                    <select class="form-select" id="gender" required>
+                      <option value="">Select...</option>
+                      <option value="M">MALE</option>
+                      <option value="F">FEMALE</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Mobile Number <span class="required-star">*</span></label>
+                    <input type="tel" class="form-input" id="mobile" required maxlength="10" placeholder="10 DIGITS">
+                    <div class="mobile-status" id="mobileStatus"></div>
+                  </div>
+                </div>
+
+                <!-- Row 3: Father (3) : Mother (3) : Address (4) -->
+                <div class="form-row" style="grid-template-columns: 3fr 3fr 4fr;">
+                  <div class="form-group">
+                    <label class="form-label">Father's Name</label>
+                    <input type="text" class="form-input" id="father" placeholder="OPTIONAL">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Mother's Name</label>
+                    <input type="text" class="form-input" id="mother" placeholder="OPTIONAL">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Address <span class="required-star">*</span></label>
+                    <textarea class="form-textarea" id="address" required placeholder="COMPLETE ADDRESS" style="height: 48px;"></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="btn-modern btn-secondary" id="clearFormBtn">🗑️ Clear Form</button>
+                <button type="submit" class="btn-modern btn-primary">✅ Register Patient</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Last Registration -->
+        <div class="last-registration" id="lastRegistration" style="display: none;">
+          <div class="last-registration-title">✨ Last Registered Patient</div>
+          <div class="last-registration-grid" id="lastRegistrationDetails"></div>
+        </div>
+      </section>
+
+      <!-- Search Tab -->
+      <!-- Legacy Data Viewer Tab -->
+      <section id="legacy-viewer" class="tab-content">
+        <div class="modern-card">
+          <div class="modern-card-header">
+            <h2>📚 Legacy Data Viewer (HMS 2.0)</h2>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-modern btn-secondary" id="printLegacyBtn">🖨️ Print</button>
+              <button class="btn-modern btn-primary" id="exportLegacyCsvBtn">📥 Export CSV</button>
+            </div>
+          </div>
+          <div class="modern-card-body">
+            <!-- Table Selector -->
+            <div class="records-tabs">
+              <button class="records-tab active" data-legacy-table="vaccines">💉 Vaccine Register</button>
+              <button class="records-tab" data-legacy-table="followup">📅 Follow-up Register</button>
+            </div>
+
+            <!-- Filters -->
+            <form id="legacyFilterForm">
+              <div class="filters-basic">
+                <div class="filter-group">
+                  <label>Search:</label>
+                  <input type="text" class="form-input" id="legacySearchFilter" placeholder="RegNo, Name, Mobile...">
+                </div>
+
+                <div style="display: flex; gap: 12px;">
+                  <button type="submit" class="btn-modern btn-primary">Search</button>
+                  <button type="button" class="btn-modern btn-secondary" onclick="document.getElementById('legacyFilterForm').reset(); LegacyViewer.loadRecords();">Clear</button>
+                </div>
+              </div>
+            </form>
+
+            <!-- Sort & Per Page -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0;">
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <label>Sort:</label>
+                <select class="form-select" id="legacySortBySelect" style="width: 150px;">
+                  <option value="id">Newest First</option>
+                  <option value="regno">RegNo</option>
+                  <option value="name">Name</option>
+                </select>
+                <button class="btn-modern btn-secondary" id="legacySortOrderBtn" data-order="DESC" style="width: 50px;">↓</button>
+              </div>
+
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <label>Per Page:</label>
+                <select class="form-select" id="legacyPerPageSelect" style="width: 80px;">
+                  <option value="10">10</option>
+                  <option value="20" selected>20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Table Container -->
+            <div id="legacyTableContainer"></div>
+
+            <!-- Pagination -->
+            <div id="legacyPaginationContainer" style="margin-top: 20px;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Import/Export Tab -->
+      <section id="import-export" class="tab-content">
+        <!-- Current Data Import/Export -->
+        <h2 style="margin-bottom: 20px; color: #1e293b; font-size: 20px;">📊 Current Data Import/Export</h2>
+        
+        <div class="import-export-grid">
+          <!-- Export Card -->
+          <div class="import-export-card">
+            <h3>📥 Export Data</h3>
+            <p style="color: #64748b; margin-bottom: 16px;">Download records as CSV file.</p>
+            
+            <label style="font-size: 13px; font-weight: 600; margin-bottom: 8px; display: block;">Select Table:</label>
+            <select class="form-select" id="exportTableSelect" style="margin-bottom: 12px;">
+              <option value="patients">Patients</option>
+              <option value="op-register">OP Register</option>
+              <option value="vaccines">Vaccines</option>
+              <option value="followup">Follow-up</option>
+            </select>
+            
+            <button class="btn-modern btn-primary w-full" id="exportAllBtn">📥 Download CSV</button>
+          </div>
+
+          <!-- Import Card -->
+          <div class="import-export-card">
+            <h3>📤 Import Data</h3>
+            <p style="color: #64748b; margin-bottom: 16px;">Upload CSV file to import records.</p>
+            
+            <label style="font-size: 13px; font-weight: 600; margin-bottom: 8px; display: block;">Select Table:</label>
+            <select class="form-select" id="importTableSelect" style="margin-bottom: 12px;">
+              <option value="patients">Patients</option>
+              <option value="op-register">OP Register</option>
+              <option value="vaccines">Vaccines</option>
+              <option value="followup">Follow-up</option>
+            </select>
+            
+            <input type="file" id="importCsvFile" accept=".csv" class="form-input" style="margin-bottom: 12px;">
+            
+            <button class="btn-modern btn-secondary w-full" id="downloadTemplateBtn" style="margin-bottom: 12px;">
+              📄 Download Template
+            </button>
+            
+            <button class="btn-modern btn-primary w-full" id="importAllBtn">📤 Import CSV</button>
+          </div>
+        </div>
+
+        <!-- Import Summary -->
+        <div id="importAllSummary"></div>
+
+        <!-- Legacy Import Section -->
+        <div style="margin-top: 48px; padding-top: 32px; border-top: 3px solid #e2e8f0;">
+          <h2 style="margin-bottom: 12px; color: #1e293b; font-size: 20px;">🕰️ Legacy Data Import (HMS 2.0)</h2>
+          <p style="color: #64748b; margin-bottom: 24px; font-size: 14px;">
+            Import historical data from your previous HMS 2.0 system. Legacy data is stored separately for reference.
+          </p>
+
+          <div class="import-export-grid">
+            <div class="import-export-card" style="background: #fef3c7; border: 2px solid #fbbf24;">
+              <h3 style="color: #92400e;">⚠️ Legacy Import Instructions</h3>
+              <div style="color: #78350f; font-size: 13px; line-height: 1.6;">
+                <p style="margin-bottom: 8px;"><strong>Before importing:</strong></p>
+                <ul style="margin-left: 20px; margin-bottom: 12px;">
+                  <li>Import Patients first</li>
+                  <li>Then import OP Register, Vaccines, Follow-ups</li>
+                  <li>Legacy data stored separately</li>
+                  <li>OP numbers converted to new format</li>
+                  <li>Patient snapshots preserved in vaccine/followup legacy tables</li>
+                </ul>
+                <p style="font-weight: 600; margin-top: 12px;">⚡ Status defaults: Completed & Paid</p>
+              </div>
+            </div>
+
+            <div class="import-export-card">
+              <h3>📤 Import Legacy Data</h3>
+              <p style="color: #64748b; margin-bottom: 16px;">Upload HMS 2.0 CSV files.</p>
+              
+              <label style="font-size: 13px; font-weight: 600; margin-bottom: 8px; display: block;">Select Data Type:</label>
+              <select class="form-select" id="legacyTableSelect" style="margin-bottom: 12px;">
+                <option value="op-register">OP Register</option>
+                <option value="vaccines">Vaccines</option>
+                <option value="followup">Follow-up</option>
+              </select>
+              
+              <input type="file" id="legacyCsvFile" accept=".csv" class="form-input" style="margin-bottom: 12px;">
+              
+              <button class="btn-modern btn-secondary w-full" id="downloadLegacyTemplateBtn" style="margin-bottom: 12px;">
+                📄 Download Legacy Template
+              </button>
+              
+              <button class="btn-modern btn-primary w-full" id="importLegacyBtn">📤 Import Legacy Data</button>
+            </div>
+          </div>
+
+          <!-- Legacy Import Summary -->
+          <div id="legacyImportSummary"></div>
+        </div>
+      </section>
+
+      <!-- Records Viewer Tab -->
+      <section id="records" class="tab-content">
+        <div class="modern-card">
+          <div class="modern-card-header">
+            <h2>📋 View Records</h2>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-modern btn-secondary" id="printBtn">🖨️ Print</button>
+              <button class="btn-modern btn-primary" id="exportCsvBtn">📥 Export CSV</button>
+            </div>
+          </div>
+          <div class="modern-card-body">
+            <!-- Table Selector Tabs -->
+            <div class="records-tabs">
+              <button class="records-tab active" data-table="patients">Patients</button>
+              <button class="records-tab" data-table="op-register">OP Register</button>
+              <button class="records-tab" data-table="vaccines">Vaccines</button>
+              <button class="records-tab" data-table="followup">Follow-up</button>
+            </div>
+
+            <!-- Filters - All in Single Line -->
+            <form id="recordsFilterForm">
+              <div style="display: grid; grid-template-columns: 140px 130px 130px 1fr auto auto; gap: 8px; align-items: center; margin-bottom: 20px;">
+                <!-- Date Quick Filter -->
+                <select class="form-select" id="dateQuickFilter">
+                  <option value="">All Dates</option>
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="last7days">Last 7 Days</option>
+                  <option value="last30days">Last 30 Days</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+
+                <!-- From Date (Always Visible) -->
+                <input type="date" class="form-input" id="dateFrom" placeholder="From">
+
+                <!-- To Date (Always Visible) -->
+                <input type="date" class="form-input" id="dateTo" placeholder="To">
+
+                <!-- Search Box (Stretches) -->
+                <input type="text" class="form-input" id="searchFilter" placeholder="RegNo, Name, Mobile...">
+
+                <!-- Action Buttons -->
+                <button type="submit" class="btn-modern btn-primary">Apply</button>
+                <button type="button" class="btn-modern btn-secondary" onclick="ViewRecords.clearFilters()">Clear</button>
+              </div>
+
+              <!-- Table-Specific Filters (Second Line, Compact) -->
+              <div id="tableSpecificFilters" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <!-- OP Register Filters -->
+                <div id="opFilters" style="display: none;">
+                  <select class="form-select" id="doctorFilter">
+                    <option value="">All Doctors</option>
+                  </select>
+                </div>
+                <div id="opFilters2" style="display: none;">
+                  <input type="text" class="form-input" id="complaintsFilter" placeholder="Chief Complaints...">
+                </div>
+
+                <!-- Vaccine Filters -->
+                <div id="vaccineFilters" style="display: none; grid-column: 1 / -1;">
+                  <input type="text" class="form-input" id="vaccineBrandFilter" placeholder="Vaccine Brand...">
+                </div>
+
+                <!-- Follow-up Filters -->
+                <div id="followupFilters" style="display: none; grid-column: 1 / -1;">
+                  <input type="text" class="form-input" id="followupReasonFilter" placeholder="Follow-up Reason...">
+                </div>
+              </div>
+            </form>
+
+            <!-- Sort & Per Page -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0;">
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <label>Sort By:</label>
+                <select class="form-select" id="sortBySelect" style="width: 150px;">
+                  <option value="id">Newest First</option>
+                  <option value="regno">RegNo</option>
+                  <option value="name">Name</option>
+                </select>
+                <button class="btn-modern btn-secondary" id="sortOrderBtn" data-order="DESC" style="width: 50px;">↓</button>
+              </div>
+
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <label>Per Page:</label>
+                <select class="form-select" id="perPageSelect" style="width: 80px;">
+                  <option value="10">10</option>
+                  <option value="20" selected>20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Table Container -->
+            <div id="recordsTableContainer"></div>
+
+            <!-- Pagination -->
+            <div id="paginationContainer" style="margin-top: 20px;"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Edit Patient Modal -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2>✏️ Edit Patient</h2>
+        <button class="modal-close" id="closeEditModal">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="editForm">
+          <input type="hidden" id="editPatientId">
+          
+          <div class="modal-form-grid">
+            <div class="form-group full">
+              <label class="form-label">RegNo</label>
+              <input type="text" class="form-input" id="editRegno" disabled style="background: #f1f5f9;">
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Name <span class="required-star">*</span></label>
+              <input type="text" class="form-input" id="editName" required>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Date of Birth</label>
+              <input type="date" class="form-input" id="editDob">
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Gender <span class="required-star">*</span></label>
+              <select class="form-select" id="editGender" required>
+                <option value="M">MALE</option>
+                <option value="F">FEMALE</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Mobile <span class="required-star">*</span></label>
+              <input type="tel" class="form-input" id="editMobile" required maxlength="10">
+              <div class="mobile-status" id="editMobileStatus"></div>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Father's Name</label>
+              <input type="text" class="form-input" id="editFather">
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Mother's Name</label>
+              <input type="text" class="form-input" id="editMother">
+            </div>
+            
+            <div class="form-group full">
+              <label class="form-label">Address <span class="required-star">*</span></label>
+              <textarea class="form-textarea" id="editAddress" required style="height: 60px;"></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-modern btn-secondary" id="cancelEditBtn">Cancel</button>
+        <button class="btn-modern btn-primary" id="saveEditBtn">💾 Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Records Detail Modal -->
+  <div class="modal-overlay" id="recordDetailModal">
+    <div class="modal-container" style="max-width: 900px;">
+      <div class="modal-header">
+        <h2 id="recordModalTitle">📋 Record Details</h2>
+        <button class="modal-close" id="closeRecordModal">×</button>
+      </div>
+      <div class="modal-body" id="recordModalBody">
+        <!-- Content loaded dynamically -->
+      </div>
+      <div class="modal-actions">
+        <button class="btn-modern btn-secondary" id="closeRecordModalBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/shared/js/api.js"></script>
+  <script src="/shared/js/utils.js"></script>
+  <script src="/reception/js/receptionUtils.js"></script>
+  <script src="/reception/js/bugfixes.js"></script>
+  <script src="/reception/js/navigation.js"></script>
+  <script src="/reception/js/register.js"></script>
+  <script src="/reception/js/smartSearch.js"></script>
+  <script src="/reception/js/importExport.js"></script>
+  <script src="/reception/js/viewRecords.js"></script>
+  <script src="/reception/js/legacyViewer.js"></script>
+  <script src="/reception/js/main.js"></script>
+
+</body>
+</html>

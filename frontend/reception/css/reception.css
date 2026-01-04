@@ -1,0 +1,387 @@
+/* =========================================================
+   HMS 3.0 - Reception Module Styles
+   Hover-to-Expand Sidebar (NO TOGGLE, NO JS)
+========================================================= */
+
+:root {
+  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --gradient-danger: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  --gradient-warning: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+
+  --bg-main: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-hover: #f8fafc;
+
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+
+  --border-color: #e2e8f0;
+
+  --success: #10b981;
+  --error: #dc2626;
+
+  --space-xs: 6px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  --border-radius: 12px;
+  --border-radius-sm: 8px;
+
+  --shadow: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.12);
+
+  --transition: all 0.3s ease;
+}
+
+/* =========================================================
+   LAYOUT
+========================================================= */
+
+.reception-container {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-main);
+}
+
+/* =========================================================
+   SIDEBAR — COLLAPSED BY DEFAULT, EXPANDS ON HOVER
+========================================================= */
+
+.sidebar {
+  width: 70px;
+  background: white;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
+}
+
+.sidebar:hover {
+  width: 260px;
+}
+
+/* Header */
+.sidebar-header {
+  padding: var(--space-lg);
+  background: var(--gradient-primary);
+  color: white;
+  overflow: hidden;
+  transition: padding 0.3s;
+}
+
+.sidebar:not(:hover) .sidebar-header {
+  padding: 16px 8px;
+}
+
+.sidebar-logo {
+  font-size: 24px;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: all 0.3s;
+}
+
+.sidebar:not(:hover) .sidebar-logo {
+  font-size: 16px;
+  text-align: center;
+}
+
+.sidebar-subtitle {
+  font-size: 13px;
+  opacity: 0.9;
+  transition: all 0.3s;
+}
+
+.sidebar:not(:hover) .sidebar-subtitle {
+  opacity: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Navigation */
+.sidebar-nav {
+  flex: 1;
+  padding: var(--space-md);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 6px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: var(--transition);
+  position: relative;
+}
+
+.sidebar:not(:hover) .nav-item {
+  justify-content: center;
+  padding: 14px 8px;
+}
+
+.nav-icon {
+  font-size: 22px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.sidebar-text {
+  white-space: nowrap;
+  transition: opacity 0.3s;
+}
+
+.sidebar:not(:hover) .sidebar-text {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.nav-item:hover {
+  background: var(--bg-hover);
+  color: #667eea;
+}
+
+.sidebar:not(:hover) .nav-item:hover {
+  transform: none;
+}
+
+.nav-item.active {
+  background: var(--gradient-primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+}
+
+.nav-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 70%;
+  background: white;
+  border-radius: 0 4px 4px 0;
+}
+
+/* Footer */
+.sidebar-footer {
+  padding: var(--space-lg);
+  border-top: 1px solid var(--border-color);
+  transition: padding 0.3s;
+}
+
+.sidebar:not(:hover) .sidebar-footer {
+  padding: 16px 8px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sidebar:not(:hover) .user-info {
+  justify-content: center;
+}
+
+.user-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+/* =========================================================
+   MAIN CONTENT
+========================================================= */
+
+.main-content {
+  flex: 1;
+  margin-left: 70px;
+  padding: var(--space-xl);
+  transition: margin-left 0.3s;
+}
+
+/* =========================================================
+   QUEUE STAT CARD
+========================================================= */
+
+.queue-stat {
+  background: var(--gradient-primary);
+  color: white;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(102,126,234,0.3);
+  margin-bottom: var(--space-xl);
+  position: relative;
+  overflow: hidden;
+}
+
+.queue-stat::before {
+  content: "👥";
+  position: absolute;
+  right: 20px;
+  top: 20px;
+  font-size: 80px;
+  opacity: 0.15;
+}
+
+.queue-stat-value {
+  font-size: 56px;
+  font-weight: 800;
+}
+
+.queue-stat-label {
+  font-size: 18px;
+  opacity: 0.95;
+}
+
+/* =========================================================
+   TABS
+========================================================= */
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================================
+   CARDS
+========================================================= */
+
+.modern-card {
+  background: white;
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-bottom: var(--space-xl);
+}
+
+.modern-card-header {
+  background: var(--gradient-primary);
+  color: white;
+  padding: 20px 30px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.modern-card-body {
+  padding: 30px;
+}
+
+/* =========================================================
+   FORMS
+========================================================= */
+
+.registration-form {
+  display: grid;
+  gap: 20px;
+}
+
+.form-row {
+  display: grid;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  padding: 12px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 15px;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+}
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+.btn-modern {
+  padding: 14px 28px;
+  border-radius: 12px;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-modern.btn-primary {
+  background: var(--gradient-primary);
+  color: white;
+}
+
+.btn-modern.btn-secondary {
+  background: #e2e8f0;
+  color: var(--text-secondary);
+}
+
+/* =========================================================
+   RESPONSIVE (MOBILE)
+========================================================= */
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 60px;
+  }
+
+  .sidebar:hover {
+    width: 60px;
+  }
+
+  .main-content {
+    margin-left: 60px;
+    padding: var(--space-md);
+  }
+
+  .form-row {
+    grid-template-columns: 1fr !important;
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "hms-3.0",
+  "version": "3.0.0",
+  "description": "Hospital Management System 3.0 - Clean & Modular",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js"
+  },
+  "keywords": ["hospital", "management", "healthcare"],
+  "author": "HMS Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "sqlite3": "^5.1.6",
+    "node-cron": "^3.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

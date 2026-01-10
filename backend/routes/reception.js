@@ -2705,3 +2705,193 @@ router.get('/opd/today-stats', (req, res) => {
   });
 });
 
+/* =========================================================
+   BACKEND ROUTES - UPDATES FOR MODAL-BASED OPD
+   Add these modifications to backend/routes/reception.js
+========================================================= */
+
+/* ==================================================
+   NEW ENDPOINT: Review Eligibility (Last 5 Days)
+   
+   This replaces the patient-specific check and returns
+   the LAST doctor the patient visited in the last 5 days
+================================================== */
+
+router.get('/patients/:patient_id/review-eligibility-last-5-days', (req, res) => {
+  const { patient_id } = req.params;
+  
+  // Get last 'new' visit within last 5 days
+  const sql = `
+    SELECT 
+      op.id,
+      op.visit_date,
+      op.doctor_id,
+      op.chief_complaints,
+      u.full_name as doctor_name,
+      u.review_days,
+      u.review_count
+    FROM op_register op
+    JOIN users u ON op.doctor_id = u.id
+    WHERE op.patient_id = ? 
+      AND op.visit_type = 'new'
+      AND DATE(op.visit_date) >= DATE('now', '-5 days')
+    ORDER BY op.visit_date DESC, op.visit_time DESC
+    LIMIT 1
+  `;
+  
+  db.get(sql, [patient_id], (err, lastNewVisit) => {
+    if (err) {
+      console.error('❌ Error checking review eligibility:', err.message);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (!lastNewVisit) {
+      return res.json({
+        eligible: false,
+        reason: 'No paid visit in last 5 days'
+      });
+    }
+    
+    // Calculate days since last new visit
+    const lastVisitDate = new Date(lastNewVisit.visit_date);
+    const today = new Date();
+    const daysSince = Math.floor((today - lastVisitDate) / (1000 * 60 * 60 * 24));
+    
+    // Count review visits after that new visit
+    const countSql = `
+      SELECT COUNT(*) as count
+      FROM op_register
+      WHERE patient_id = ?
+        AND doctor_id = ?
+        AND visit_type = 'review'
+        AND visit_date >= ?
+    `;
+    
+    db.get(countSql, [patient_id, lastNewVisit.doctor_id, lastNewVisit.visit_date], (err, countRow) => {
+      if (err) {
+        return res.json({ eligible: false, reason: 'Error counting reviews' });
+      }
+      
+      const reviewsUsed = countRow.count || 0;
+      const daysRemaining = lastNewVisit.review_days - daysSince;
+      
+      // Check eligibility
+      const eligible = daysSince <= lastNewVisit.review_days && reviewsUsed < lastNewVisit.review_count;
+      
+      res.json({
+        eligible: eligible,
+        doctor_id: lastNewVisit.doctor_id,
+        doctor_name: lastNewVisit.doctor_name,
+        reviews_used: reviewsUsed,
+        reviews_allowed: lastNewVisit.review_count,
+        days_remaining: daysRemaining > 0 ? daysRemaining : 0,
+        days_allowed: lastNewVisit.review_days,
+        last_new_visit: {
+          visit_date: lastNewVisit.visit_date,
+          complaints: lastNewVisit.chief_complaints
+        },
+        reason: !eligible ? (daysSince > lastNewVisit.review_days ? 'Review period expired' : 'Review limit reached') : null
+      });
+    });
+  });
+});
+
+/* ==================================================
+   MODIFIED ENDPOINT: Review Eligibility (Original - Keep for compatibility)
+   
+   This is the patient + doctor specific check
+================================================== */
+
+router.get('/patients/:patient_id/review-eligibility/:doctor_id', (req, res) => {
+  const { patient_id, doctor_id } = req.params;
+  
+  // Get last 'new' visit with this doctor in last 5 days
+  const sql = `
+    SELECT 
+      id,
+      visit_date,
+      visit_time,
+      chief_complaints
+    FROM op_register
+    WHERE patient_id = ? 
+      AND doctor_id = ? 
+      AND visit_type = 'new'
+      AND DATE(visit_date) >= DATE('now', '-5 days')
+    ORDER BY visit_date DESC, visit_time DESC
+    LIMIT 1
+  `;
+  
+  db.get(sql, [patient_id, doctor_id], (err, lastNewVisit) => {
+    if (err) {
+      console.error('❌ Error checking review eligibility:', err.message);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (!lastNewVisit) {
+      return res.json({
+        eligible: false,
+        reason: 'No paid visit with this doctor in last 5 days',
+        reviews_used: 0,
+        days_remaining: 0
+      });
+    }
+    
+    // Get doctor's review settings
+    db.get('SELECT review_days, review_count FROM users WHERE id = ?', [doctor_id], (err, doctor) => {
+      if (err || !doctor) {
+        return res.json({ eligible: false, reason: 'Doctor settings not found' });
+      }
+      
+      // Calculate days since last new visit
+      const lastVisitDate = new Date(lastNewVisit.visit_date);
+      const today = new Date();
+      const daysSince = Math.floor((today - lastVisitDate) / (1000 * 60 * 60 * 24));
+      
+      // Count review visits after that new visit
+      const countSql = `
+        SELECT COUNT(*) as count
+        FROM op_register
+        WHERE patient_id = ?
+          AND doctor_id = ?
+          AND visit_type = 'review'
+          AND visit_date >= ?
+      `;
+      
+      db.get(countSql, [patient_id, doctor_id, lastNewVisit.visit_date], (err, countRow) => {
+        if (err) {
+          return res.json({ eligible: false, reason: 'Error counting reviews' });
+        }
+        
+        const reviewsUsed = countRow.count || 0;
+        const daysRemaining = doctor.review_days - daysSince;
+        
+        // Check eligibility
+        const eligible = daysSince <= doctor.review_days && reviewsUsed < doctor.review_count;
+        
+        res.json({
+          eligible: eligible,
+          reviews_used: reviewsUsed,
+          reviews_allowed: doctor.review_count,
+          days_remaining: daysRemaining > 0 ? daysRemaining : 0,
+          days_allowed: doctor.review_days,
+          last_new_visit: {
+            visit_date: lastNewVisit.visit_date,
+            complaints: lastNewVisit.chief_complaints
+          },
+          reason: !eligible ? (daysSince > doctor.review_days ? 'Review period expired' : 'Review limit reached') : null
+        });
+      });
+    });
+  });
+});
+
+/* ==================================================
+   NOTES FOR INTEGRATION:
+   
+   1. Add the new endpoint: /patients/:patient_id/review-eligibility-last-5-days
+   2. Update the existing endpoint to use 5-day check instead of all history
+   3. Both endpoints now return last_new_visit.complaints for pre-filling
+   4. The new endpoint returns doctor_id and doctor_name for button display
+   
+   These changes are BACKWARD COMPATIBLE with existing code.
+================================================== */

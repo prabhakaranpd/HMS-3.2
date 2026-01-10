@@ -9,6 +9,9 @@
   <link rel="stylesheet" href="/shared/css/layout.css">
   <link rel="stylesheet" href="/shared/css/components.css">
   <link rel="stylesheet" href="/reception/css/reception.css">
+  <link rel="stylesheet" href="/reception/css/modals.css">
+  <link rel="stylesheet" href="/reception/css/forms.css">
+  <link rel="stylesheet" href="/reception/css/components.css">
 </head>
 <body>
 
@@ -74,15 +77,16 @@
             <h2>🔍 Smart Search</h2>
           </div>
           <div class="modern-card-body">
-            <div class="search-container">
-              <input 
-                type="text" 
-                id="smartSearchInput" 
-                class="form-input" 
-                placeholder="Search by RegNo, Mobile, Name, Father, Mother, Address..."
-                style="font-size: 16px; padding: 14px; margin-bottom: 20px;"
-              >
-              <div id="smartSearchResults"></div>
+            <div class="dashboard-search-row">
+  <div class="search-bar-container">
+    <input type="text" id="smartSearchInput" class="search-input-main" 
+           placeholder="Search by RegNo, Name, Mobile...">
+  </div>
+  <button class="btn-register-new" onclick="Registration.openModal()">
+    + Register New Patient
+  </button>
+</div>
+<div id="smartSearchResults"></div>
             </div>
           </div>
         </div>
@@ -839,19 +843,33 @@
     </div>
   </div>
 
+  <!-- Core Libraries -->
   <script src="/shared/js/api.js"></script>
   <script src="/shared/js/utils.js"></script>
+  
+  <!-- Utilities -->
   <script src="/reception/js/receptionUtils.js"></script>
-  <script src="/reception/js/bugfixes.js"></script>
+  
+  <!-- Templates (load before logic) -->
+  <script src="/reception/js/registrationTemplates.js"></script>
+  <script src="/reception/js/opdTemplates.js"></script>
+  
+  <!-- Tab-based Modules -->
   <script src="/reception/js/navigation.js"></script>
   <script src="/reception/js/register.js"></script>
   <script src="/reception/js/smartSearch.js"></script>
-  <script src="/reception/js/importExport.js"></script>
   <script src="/reception/js/viewRecords.js"></script>
   <script src="/reception/js/legacyViewer.js"></script>
-  <script src="/reception/js/main.js"></script>
-  <script src="/reception/js/receptionUtils.js"></script>
+  <script src="/reception/js/importExport.js"></script>
+  <script src="/reception/js/bugfixes.js"></script>
   <script src="/reception/js/opdEntry.js"></script>
+  
+  <!-- Modal-based Modules -->
+  <script src="/reception/js/registration.js"></script>
+  <script src="/reception/js/opdEntryModal.js"></script>
+  
+  <!-- Main Initialization -->
+  <script src="/reception/js/main.js"></script>
 
 </body>
 </html>

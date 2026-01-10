@@ -1,119 +1,174 @@
 /**
- * HMS 3.0 - Smart Search with Priority Ordering
+ * HMS 3.0 - Smart Search (UPDATED with Modal Integration)
+ * 
+ * CHANGES FROM ORIGINAL:
+ * 1. Added review eligibility check
+ * 2. Added 4-button layout to patient cards
+ * 3. Added doctor validation before opening OPD modal
+ * 4. Integrated with Registration and OPD modals
+ * 5. RESTORED: Direct edit functionality (viewPatient & saveEdit methods)
+ * 6. FIXED: Changed OPDEntry to OPDEntryModal
  */
 
 const SmartSearch = {
-  currentResults: [],
-  currentOffset: 0,
-  currentQuery: '',
-  totalResults: 0,
-
+  searchTimeout: null,
+  
   init() {
     const searchInput = document.getElementById('smartSearchInput');
     
-    // Debounced search
-    const debouncedSearch = ReceptionUtils.debounce((query) => {
-      this.search(query, 0);
-    }, 300);
-
     searchInput.addEventListener('input', (e) => {
+      clearTimeout(this.searchTimeout);
       const query = e.target.value.trim();
-      this.currentQuery = query;
       
       if (query.length >= 2) {
-        debouncedSearch(query);
+        this.searchTimeout = setTimeout(() => {
+          this.performSearch(query);
+        }, 300);
       } else {
         this.clearResults();
       }
     });
   },
 
-  async search(query, offset = 0) {
-    if (!query || query.length < 2) return;
-
+  async performSearch(query) {
     try {
-      const data = await API.get(`/api/reception/patients/smart-search?q=${encodeURIComponent(query)}&limit=10&offset=${offset}`);
+      const data = await API.get(`/api/reception/patients/smart-search?q=${encodeURIComponent(query)}&limit=10`);
       
-      this.currentResults = data.patients;
-      this.currentOffset = offset;
-      this.totalResults = data.total;
-      
-      this.renderResults(offset === 0);
-      
+      if (data.patients.length === 0) {
+        this.showNoResults(query);
+      } else {
+        await this.renderResults(data.patients);
+      }
     } catch (error) {
       Utils.showToast('Search failed', 'error');
     }
   },
 
-  renderResults(clearFirst = true) {
+  async renderResults(patients) {
     const container = document.getElementById('smartSearchResults');
-    
-    if (clearFirst) {
-      container.innerHTML = '';
-    }
+    container.innerHTML = '';
 
-    if (this.currentResults.length === 0 && this.currentOffset === 0) {
-      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><p>No patients found</p></div>';
-      return;
-    }
-
-    this.currentResults.forEach(patient => {
-      const age = ReceptionUtils.calculateAge(patient.dob);
-      
-      const card = document.createElement('div');
-      card.className = 'patient-card';
-      
-      card.innerHTML = `
-        <div class="patient-card-header">
-          <div class="patient-name-section">
-            <div class="patient-name">${patient.name}</div>
-            <span class="patient-regno">RegNo: ${patient.regno}</span>
-          </div>
-          <button class="btn-edit" onclick="SmartSearch.viewPatient(${patient.id})">
-            ✏️ Edit
-          </button>
-        </div>
-        <div class="patient-details-grid">
-          <div class="patient-detail-item"><strong>Age:</strong> ${age}</div>
-          <div class="patient-detail-item"><strong>Gender:</strong> ${patient.gender === 'M' ? 'Male' : 'Female'}</div>
-          <div class="patient-detail-item"><strong>Mobile:</strong> ${patient.mobile || '-'}</div>
-          <div class="patient-detail-item"><strong>Father:</strong> ${patient.father || '-'}</div>
-          <div class="patient-detail-item"><strong>Mother:</strong> ${patient.mother || '-'}</div>
-          <div class="patient-detail-item" style="grid-column: 1 / -1;"><strong>Address:</strong> ${patient.address || '-'}</div>
-        </div>
-      `;
-      
+    for (const patient of patients) {
+      const card = await this.createPatientCard(patient);
       container.appendChild(card);
-    });
-
-    // Load more button
-    if (this.currentOffset + this.currentResults.length < this.totalResults) {
-      const loadMoreBtn = document.getElementById('loadMoreBtn') || document.createElement('button');
-      loadMoreBtn.id = 'loadMoreBtn';
-      loadMoreBtn.className = 'btn-modern load-more-btn';
-      loadMoreBtn.textContent = `Load More (${this.totalResults - (this.currentOffset + this.currentResults.length)} remaining)`;
-      loadMoreBtn.onclick = () => this.loadMore();
-      
-      if (!document.getElementById('loadMoreBtn')) {
-        container.appendChild(loadMoreBtn);
-      }
-    } else {
-      document.getElementById('loadMoreBtn')?.remove();
     }
   },
 
-  async loadMore() {
-    const newOffset = this.currentOffset + 10;
-    await this.search(this.currentQuery, newOffset);
+  async createPatientCard(patient) {
+    const age = ReceptionUtils.calculateAge(patient.dob);
+    const gender = patient.gender === 'M' ? 'Male' : 'Female';
+
+    const card = document.createElement('div');
+    card.className = 'patient-result-card';
+    
+    // Patient info
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'patient-card-info';
+    infoDiv.innerHTML = `
+      <div class="patient-card-name">${patient.name}</div>
+      <div class="patient-card-meta">
+        RegNo: ${patient.regno} | ${age} | ${gender} | Mobile: ${patient.mobile || '-'}
+      </div>
+    `;
+    card.appendChild(infoDiv);
+
+    // Action buttons
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'patient-card-actions';
+    
+    // Edit button - FIXED: Now calls viewPatient instead of editPatient
+    const editBtn = this.createActionButton('✏️ Edit', 'btn-edit', () => {
+      this.viewPatient(patient.id);
+    });
+    actionsDiv.appendChild(editBtn);
+
+    // New OP button
+    const newOpBtn = this.createActionButton('🆕 New OP', 'btn-new-op', async () => {
+      await this.openOPDModal(patient, 'new');
+    });
+    actionsDiv.appendChild(newOpBtn);
+
+    // Review button (check eligibility)
+    const reviewBtn = await this.createReviewButton(patient);
+    if (reviewBtn) {
+      actionsDiv.appendChild(reviewBtn);
+    }
+
+    // Emergency button
+    const emergencyBtn = this.createActionButton('🚨 Emergency', 'btn-emergency', async () => {
+      await this.openOPDModal(patient, 'emergency');
+    });
+    actionsDiv.appendChild(emergencyBtn);
+
+    card.appendChild(actionsDiv);
+    return card;
   },
 
-  clearResults() {
-    document.getElementById('searchResults').innerHTML = '';
-    this.currentResults = [];
-    this.currentOffset = 0;
-    this.totalResults = 0;
+  createActionButton(text, className, onClick) {
+    const btn = document.createElement('button');
+    btn.className = `btn-patient-action ${className}`;
+    btn.textContent = text;
+    btn.addEventListener('click', onClick);
+    return btn;
   },
 
+  async createReviewButton(patient) {
+    try {
+      // Check review eligibility (last 5 days)
+      const eligibility = await this.checkReviewEligibility(patient.id);
+      
+      if (eligibility.eligible) {
+        const reviewText = `🔄 Review - ${eligibility.doctor_name} (${eligibility.reviews_used}/${eligibility.reviews_allowed})`;
+        
+        const btn = this.createActionButton(reviewText, 'btn-review', async () => {
+          await this.openOPDModal(patient, 'review', eligibility.doctor_id, eligibility);
+        });
+        
+        return btn;
+      }
+      
+      return null; // Not eligible, don't show button
+      
+    } catch (error) {
+      console.error('Failed to check review eligibility:', error);
+      return null;
+    }
+  },
+
+  async checkReviewEligibility(patientId) {
+    // First, get any doctor to check eligibility
+    const { doctors } = await API.get('/api/reception/doctors-list');
+    
+    if (doctors.length === 0) {
+      return { eligible: false };
+    }
+
+    // Check with first doctor (or we could check all doctors and show if ANY doctor has eligibility)
+    // For simplicity, checking with most recent doctor
+    const response = await API.get(`/api/reception/patients/${patientId}/review-eligibility-last-5-days`);
+    
+    return response;
+  },
+
+  async openOPDModal(patient, visitType, doctorId = null, reviewData = null) {
+    // Validate doctors exist
+    try {
+      const { doctors } = await API.get('/api/reception/doctors-list');
+      
+      if (doctors.length === 0) {
+        Utils.showToast('No doctors available. Please add doctors via Admin page first.', 'error');
+        return;
+      }
+
+      // Open OPD modal - FIXED: Changed to OPDEntryModal
+      await OPDEntryModal.openModal(patient, visitType, doctorId, reviewData);
+      
+    } catch (error) {
+      Utils.showToast('Failed to open OPD entry', 'error');
+    }
+  },
+
+  // RESTORED FROM OLD VERSION: Direct edit functionality
   async viewPatient(patientId) {
     try {
       // Fetch patient data
@@ -151,6 +206,7 @@ const SmartSearch = {
     }
   },
 
+  // RESTORED FROM OLD VERSION: Save edit functionality
   async saveEdit() {
     const patientId = document.getElementById('editPatientId').value;
     
@@ -170,9 +226,10 @@ const SmartSearch = {
       Utils.showToast('Patient updated successfully', 'success');
       this.closeEditModal();
       
-      // Refresh search
-      if (this.currentQuery) {
-        this.search(this.currentQuery, 0);
+      // Refresh search if there's an active query
+      const currentQuery = document.getElementById('smartSearchInput').value.trim();
+      if (currentQuery && currentQuery.length >= 2) {
+        this.performSearch(currentQuery);
       }
       
     } catch (error) {
@@ -180,11 +237,29 @@ const SmartSearch = {
     }
   },
 
+  // RESTORED FROM OLD VERSION: Close modal
   closeEditModal() {
     const modal = document.getElementById('editModal');
     modal.classList.remove('active');
     setTimeout(() => {
       modal.style.display = 'none';
     }, 300);
+  },
+
+  showNoResults(query) {
+    const container = document.getElementById('smartSearchResults');
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">🔍</div>
+        <p>No patients found for "${query}"</p>
+        <button class="btn-modern btn-primary mt-3" onclick="Registration.openModal({name: '${query}'})">
+          + Register New Patient
+        </button>
+      </div>
+    `;
+  },
+
+  clearResults() {
+    document.getElementById('smartSearchResults').innerHTML = '';
   }
 };

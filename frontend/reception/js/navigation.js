@@ -32,22 +32,25 @@ const Navigation = {
   },
 
   loadTabData(tabName) {
-    switch(tabName) {
-      case 'dashboard':
-        SmartSearch.init();
-        break;
-      case 'register':
-        Register.loadLastRegistration();
-        break;
-      case 'records':
-        ViewRecords.loadRecords();
-        break;
-      case 'legacy-viewer':
-        LegacyViewer.loadRecords();
-        break;
-      case 'import-export':
-        // Static tab
-        break;
-    }
+  switch(tabName) {
+    case 'dashboard':
+      SmartSearch.init();
+      break;
+    case 'register':
+      Register.loadLastRegistration();
+      break;
+    case 'opd-entry':  // ← ADD THIS CASE
+      OPDEntry.loadTodayStats();
+      break;
+    case 'records':
+      ViewRecords.loadRecords();
+      break;
+    case 'legacy-viewer':
+      LegacyViewer.loadRecords();
+      break;
+    case 'import-export':
+      // Static tab
+      break;
   }
+}
 };

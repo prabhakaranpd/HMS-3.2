@@ -41,6 +41,10 @@
           <span class="nav-icon">📤</span>
           <span class="sidebar-text">Import/Export</span>
         </div>
+	<div class="nav-item" data-tab="opd-entry">
+  	  <span class="nav-icon">🏥</span>
+  	  <span class="sidebar-text">OPD Entry</span>
+	</div>
       </nav>
 
       <div class="sidebar-footer">
@@ -425,6 +429,332 @@
           </div>
         </div>
       </section>
+
+<!-- OPD Entry Tab -->
+<section id="opd-entry" class="tab-content">
+  <!-- Today's Stats -->
+  <div class="opd-stats-grid">
+    <div class="opd-stat-card stat-total">
+      <div class="stat-icon">📊</div>
+      <div class="stat-value" id="opdTodayTotal">0</div>
+      <div class="stat-label">Total Today</div>
+    </div>
+    <div class="opd-stat-card stat-new">
+      <div class="stat-icon">🆕</div>
+      <div class="stat-value" id="opdTodayNew">0</div>
+      <div class="stat-label">New Visits</div>
+    </div>
+    <div class="opd-stat-card stat-review">
+      <div class="stat-icon">🔄</div>
+      <div class="stat-value" id="opdTodayReview">0</div>
+      <div class="stat-label">Reviews</div>
+    </div>
+    <div class="opd-stat-card stat-emergency">
+      <div class="stat-icon">🚨</div>
+      <div class="stat-value" id="opdTodayEmergency">0</div>
+      <div class="stat-label">Emergency</div>
+    </div>
+    <div class="opd-stat-card stat-waiting">
+      <div class="stat-icon">⏳</div>
+      <div class="stat-value" id="opdTodayWaiting">0</div>
+      <div class="stat-label">Waiting</div>
+    </div>
+  </div>
+
+  <div class="modern-card">
+    <div class="modern-card-header">
+      <h2>🏥 OPD Entry</h2>
+    </div>
+    <div class="modern-card-body">
+      <!-- Patient Search Section -->
+      <div class="opd-search-section">
+        <h3 class="opd-section-title">1️⃣ Select Patient</h3>
+        <div class="search-input-wrapper">
+          <input 
+            type="text" 
+            id="opdPatientSearch" 
+            class="search-input" 
+            placeholder="Search by RegNo, Name, Mobile..."
+          >
+        </div>
+        <div id="opdPatientResults"></div>
+      </div>
+
+      <!-- Selected Patient Details -->
+      <div id="opdSelectedPatient" class="opd-selected-patient" style="display: none;">
+        <div class="opd-section-header">
+          <h3 class="opd-section-title">📋 Patient Details</h3>
+          <button type="button" class="btn-clear-selection" onclick="OPDEntry.clearPatientSelection()">
+            ✖️ Clear Selection
+          </button>
+        </div>
+        <div class="patient-details-display">
+          <div class="detail-row">
+            <div class="detail-item">
+              <span class="detail-label">RegNo:</span>
+              <span class="detail-value" id="opdSelectedRegno">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Name:</span>
+              <span class="detail-value" id="opdSelectedName">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Age:</span>
+              <span class="detail-value" id="opdSelectedAge">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Gender:</span>
+              <span class="detail-value" id="opdSelectedGender">-</span>
+            </div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-item">
+              <span class="detail-label">Father:</span>
+              <span class="detail-value" id="opdSelectedFather">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Mother:</span>
+              <span class="detail-value" id="opdSelectedMother">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Mobile:</span>
+              <span class="detail-value" id="opdSelectedMobile">-</span>
+            </div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-item" style="grid-column: 1 / -1;">
+              <span class="detail-label">Address:</span>
+              <span class="detail-value" id="opdSelectedAddress">-</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Previous Visits -->
+        <div id="opdPreviousVisits" class="opd-previous-section" style="display: none;">
+          <h4 class="opd-subsection-title">📅 Recent Visits</h4>
+          <div id="opdVisitsList"></div>
+        </div>
+      </div>
+
+      <!-- OPD Entry Form -->
+      <form id="opdEntryForm">
+        <div class="opd-form-section">
+          <h3 class="opd-section-title">2️⃣ Visit Information</h3>
+          
+          <div class="form-group">
+            <label class="form-label">Doctor <span class="required">*</span></label>
+            <select id="opdDoctor" class="form-select" required>
+              <option value="">Select Doctor</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Visit Type <span class="required">*</span></label>
+            <div class="visit-type-button-group">
+              <button type="button" class="visit-type-btn active" data-type="new">
+                🆕 New Visit
+              </button>
+              <button type="button" class="visit-type-btn" data-type="review" disabled title="Select patient first">
+                🔄 Review
+              </button>
+              <button type="button" class="visit-type-btn" data-type="emergency">
+                🚨 Emergency
+              </button>
+            </div>
+            <div id="reviewBadge" class="review-badge" style="display: none;"></div>
+          </div>
+        </div>
+
+        <div class="opd-form-section">
+          <h3 class="opd-section-title">3️⃣ Vitals (Optional)</h3>
+          
+          <div class="form-row" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="form-group">
+              <label class="form-label">BP (mmHg)</label>
+              <input type="text" id="opdBP" class="form-input" placeholder="120/80">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Temperature (°F)</label>
+              <input type="number" id="opdTemp" class="form-input" step="0.1" placeholder="98.6">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Pulse (bpm)</label>
+              <input type="number" id="opdPulse" class="form-input" placeholder="72">
+            </div>
+          </div>
+
+          <div class="form-row" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="form-group">
+              <label class="form-label">RR (breaths/min)</label>
+              <input type="number" id="opdRR" class="form-input" placeholder="16">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">SpO₂ (%)</label>
+              <input type="number" id="opdSPO2" class="form-input" min="0" max="100" placeholder="98">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Weight (kg)</label>
+              <input type="number" id="opdWeight" class="form-input" step="0.1" placeholder="70">
+            </div>
+          </div>
+
+          <div class="form-row" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="form-group">
+              <label class="form-label">Height (cm)</label>
+              <input type="number" id="opdHeight" class="form-input" step="0.1" placeholder="170">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">HC (cm)</label>
+              <input type="number" id="opdHC" class="form-input" step="0.1" placeholder="Head Circumference">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">MUAC (cm)</label>
+              <input type="number" id="opdMUAC" class="form-input" step="0.1" placeholder="Mid-Upper Arm">
+            </div>
+          </div>
+        </div>
+
+        <div class="opd-form-section">
+          <h3 class="opd-section-title">4️⃣ Chief Complaints <span class="required">*</span></h3>
+          
+          <div class="form-group">
+            <label class="form-label">Select Complaints</label>
+            <div class="complaints-dropdown-container">
+              <div class="complaints-dropdown-trigger" onclick="OPDEntry.toggleComplaintsDropdown()">
+                <span id="selectedComplaintsDisplay">Select complaints...</span>
+                <span class="dropdown-arrow">▼</span>
+              </div>
+              <div id="complaintsDropdownContent" class="complaints-dropdown-content">
+                <div class="complaints-checkbox-list" id="complaintsCheckboxList">
+                  <!-- Checkboxes will be populated by JS -->
+                </div>
+                <div class="add-complaint-section">
+                  <input 
+                    type="text" 
+                    id="newComplaintInput" 
+                    class="form-input" 
+                    placeholder="Type new complaint..."
+                    style="margin-bottom: 8px;"
+                  >
+                  <button type="button" class="btn-add-complaint" onclick="OPDEntry.addNewComplaint()">
+                    ➕ Add to List
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Previous Complaints (Optional)</label>
+            <textarea id="opdPreviousComplaints" class="form-textarea" rows="2" placeholder="Previous complaints if any..."></textarea>
+          </div>
+        </div>
+
+        <div class="opd-form-section">
+          <h3 class="opd-section-title">5️⃣ Fee & Payment</h3>
+          
+          <!-- Fee Breakdown Card -->
+          <div class="fee-breakdown-card" id="feeBreakdownCard">
+            <div class="fee-breakdown-header">Fee Breakdown</div>
+            <div class="fee-breakdown-body">
+              <div class="fee-item">
+                <span>Consultation Fee:</span>
+                <span id="feeConsultation">₹0.00</span>
+              </div>
+              <div class="fee-item">
+                <span>Emergency Surcharge:</span>
+                <span id="feeSurcharge">₹0.00</span>
+              </div>
+              <div class="fee-item fee-total">
+                <span>Total:</span>
+                <span id="feeTotal">₹0.00</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row" style="grid-template-columns: repeat(2, 1fr); margin-top: 20px;">
+            <div class="form-group">
+              <label class="form-label">Override Amount (Optional)</label>
+              <input type="number" id="opdOverrideFee" class="form-input" step="0.01" min="0" placeholder="Leave blank to use calculated fee">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Final Amount</label>
+              <div class="final-amount-display" id="opdFinalAmount">₹0.00</div>
+            </div>
+          </div>
+
+          <!-- Payment Details -->
+          <div class="payment-section">
+            <h4 class="opd-subsection-title">Payment Details</h4>
+            
+            <div class="form-group">
+              <label class="form-label">Payment Method</label>
+              <div class="payment-method-group">
+                <label class="payment-method-option">
+                  <input type="radio" name="paymentMethod" value="Cash">
+                  <span>💵 Cash</span>
+                </label>
+                <label class="payment-method-option">
+                  <input type="radio" name="paymentMethod" value="UPI">
+                  <span>📱 UPI</span>
+                </label>
+                <label class="payment-method-option">
+                  <input type="radio" name="paymentMethod" value="Card">
+                  <span>💳 Card</span>
+                </label>
+                <label class="payment-method-option">
+                  <input type="radio" name="paymentMethod" value="Other">
+                  <span>🏦 Other</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-row" style="grid-template-columns: repeat(3, 1fr);">
+              <div class="form-group">
+                <label class="form-label">Amount to Pay</label>
+                <div class="amount-display" id="opdAmountToPay">₹0.00</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Amount Paid</label>
+                <input type="number" id="opdPaidAmount" class="form-input" step="0.01" min="0" value="0" placeholder="0.00">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Balance</label>
+                <div class="amount-display balance-display" id="opdBalance">₹0.00</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hidden field to store calculated fee -->
+          <input type="hidden" id="opdConsultationFeeHidden" value="0">
+        </div>
+
+        <div class="opd-form-actions">
+          <button type="button" id="clearOPDBtn" class="btn-modern btn-secondary">
+            🗑️ Clear Form
+          </button>
+          <button type="button" id="printOPSlipBtn" class="btn-modern btn-secondary">
+            🖨️ Print OP Slip
+          </button>
+          <button type="submit" class="btn-modern btn-primary">
+            💾 Save Entry
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+
     </main>
   </div>
 
@@ -520,6 +850,8 @@
   <script src="/reception/js/viewRecords.js"></script>
   <script src="/reception/js/legacyViewer.js"></script>
   <script src="/reception/js/main.js"></script>
+  <script src="/reception/js/receptionUtils.js"></script>
+  <script src="/reception/js/opdEntry.js"></script>
 
 </body>
 </html>

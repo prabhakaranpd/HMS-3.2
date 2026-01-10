@@ -1994,3 +1994,714 @@ router.get('/doctors-list', (req, res) => {
     res.json({ doctors: rows });
   });
 });
+
+/* ==================================================
+   OPD ENTRY ROUTES
+   Add these routes to backend/routes/reception.js
+================================================== */
+
+/* ==================================================
+   GENERATE OP NUMBER (Using hash-based system)
+================================================== */
+function generateOPNumber() {
+  return new Promise((resolve, reject) => {
+    // Get current date components
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    
+    // Create hash from date (YYYYMMDD → base36)
+    const dateStr = `${year}${month}${day}`;
+    const hash = parseInt(dateStr).toString(36).toUpperCase();
+    
+    // Get the max sequence for today
+    const sql = `
+      SELECT MAX(op_sequence) as max_seq 
+      FROM op_register 
+      WHERE op_hash = ? AND op_year = ?
+    `;
+    
+    db.get(sql, [hash, year], (err, row) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      
+      const sequence = (row && row.max_seq) ? row.max_seq + 1 : 1;
+      const opNumber = `${hash}${String(sequence).padStart(4, '0')}`;
+      
+      resolve({
+        op_number: opNumber,
+        op_hash: hash,
+        op_cycle: 1, // Can be used for yearly cycles if needed
+        op_sequence: sequence,
+        op_year: year
+      });
+    });
+  });
+}
+
+/* ==================================================
+   CREATE OPD ENTRY
+================================================== */
+router.post('/opd/entry', async (req, res) => {
+  const {
+    patient_id,
+    visit_type,
+    doctor_id,
+    vitals_bp,
+    vitals_temp,
+    vitals_pulse,
+    vitals_rr,
+    vitals_spo2,
+    vitals_weight,
+    vitals_height,
+    vitals_hc,
+    vitals_muac,
+    chief_complaints,
+    previous_complaints,
+    consultation_fee,
+    payment_status
+  } = req.body;
+
+  // Validation
+  if (!patient_id) {
+    return res.status(400).json({ error: 'Patient ID is required' });
+  }
+
+  if (!doctor_id) {
+    return res.status(400).json({ error: 'Doctor is required' });
+  }
+
+  try {
+    // Get patient details
+    const patient = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM patients WHERE id = ?', [patient_id], (err, row) => {
+        if (err) reject(err);
+        else if (!row) reject(new Error('Patient not found'));
+        else resolve(row);
+      });
+    });
+
+    // Generate OP Number
+    const opData = await generateOPNumber();
+
+    // Get current date and time
+    const now = new Date();
+    const visitDate = now.toISOString().split('T')[0];
+    const visitTime = now.toTimeString().split(' ')[0];
+
+    // Calculate age from DOB
+    let age = null;
+    if (patient.dob) {
+      const birthDate = new Date(patient.dob);
+      const today = new Date();
+      age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+    }
+
+    // Insert OP entry
+    const sql = `
+      INSERT INTO op_register (
+        op_number, op_hash, op_cycle, op_sequence, op_year,
+        patient_id, regno, name, age, gender, father, mother, address, mobile,
+        visit_date, visit_time, visit_type,
+        vitals_bp, vitals_temp, vitals_pulse, vitals_rr, vitals_spo2,
+        vitals_weight, vitals_height, vitals_hc, vitals_muac,
+        chief_complaints, previous_complaints,
+        doctor_id, consultation_status, consultation_fee, payment_status,
+        created_by
+      ) VALUES (
+        ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?,
+        ?, ?, ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?,
+        ?, ?, ?, ?,
+        ?
+      )
+    `;
+
+    const params = [
+      opData.op_number, opData.op_hash, opData.op_cycle, opData.op_sequence, opData.op_year,
+      patient_id, patient.regno, patient.name, age, patient.gender,
+      patient.father, patient.mother, patient.address, patient.mobile,
+      visitDate, visitTime, visit_type || 'new',
+      vitals_bp, vitals_temp, vitals_pulse, vitals_rr, vitals_spo2,
+      vitals_weight, vitals_height, vitals_hc, vitals_muac,
+      chief_complaints, previous_complaints,
+      doctor_id, 'waiting', consultation_fee || 0, payment_status || 'pending',
+      req.session.user.id
+    ];
+
+    db.run(sql, params, function(err) {
+      if (err) {
+        console.error('❌ OPD entry creation failed:', err.message);
+        return res.status(500).json({ error: 'Failed to create OPD entry' });
+      }
+
+      res.json({
+        message: 'OPD entry created successfully',
+        op_register_id: this.lastID,
+        op_number: opData.op_number
+      });
+    });
+
+  } catch (error) {
+    console.error('❌ OPD entry error:', error);
+    res.status(500).json({ error: error.message || 'Failed to create OPD entry' });
+  }
+});
+
+/* ==================================================
+   GET PATIENT OPD HISTORY
+================================================== */
+router.get('/opd/patient-history/:patient_id', (req, res) => {
+  const { patient_id } = req.params;
+  const { limit = 10 } = req.query;
+
+  const sql = `
+    SELECT 
+      op.*,
+      u.full_name as doctor_name
+    FROM op_register op
+    LEFT JOIN users u ON op.doctor_id = u.id
+    WHERE op.patient_id = ?
+    ORDER BY op.visit_date DESC, op.visit_time DESC
+    LIMIT ?
+  `;
+
+  db.all(sql, [patient_id, parseInt(limit)], (err, rows) => {
+    if (err) {
+      console.error('❌ Patient history error:', err.message);
+      return res.status(500).json({ error: 'Failed to fetch patient history' });
+    }
+
+    res.json({ visits: rows });
+  });
+});
+
+/* ==================================================
+   GET TODAY'S OPD STATS
+================================================== */
+router.get('/opd/today-stats', (req, res) => {
+  const today = new Date().toISOString().split('T')[0];
+
+  const sql = `
+    SELECT 
+      COUNT(*) as total,
+      SUM(CASE WHEN visit_type = 'new' THEN 1 ELSE 0 END) as new,
+      SUM(CASE WHEN visit_type IN ('followup', 'review') THEN 1 ELSE 0 END) as followup,
+      SUM(CASE WHEN consultation_status = 'waiting' THEN 1 ELSE 0 END) as waiting
+    FROM op_register
+    WHERE DATE(visit_date) = ?
+  `;
+
+  db.get(sql, [today], (err, row) => {
+    if (err) {
+      console.error('❌ Stats error:', err.message);
+      return res.status(500).json({ error: 'Failed to fetch stats' });
+    }
+
+    res.json({ 
+      stats: {
+        total: row.total || 0,
+        new: row.new || 0,
+        followup: row.followup || 0,
+        waiting: row.waiting || 0
+      }
+    });
+  });
+});
+
+
+/* ==================================================
+   GENERATE OP NUMBER (Year-Hash-Cycle format)
+================================================== */
+function generateOPNumber() {
+  return new Promise((resolve, reject) => {
+    const now = new Date();
+    const year = now.getFullYear();
+    
+    // Get max sequence for this year
+    const sql = `
+      SELECT MAX(op_sequence) as max_seq 
+      FROM op_register 
+      WHERE op_year = ?
+    `;
+    
+    db.get(sql, [year], (err, row) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      
+      const sequence = (row && row.max_seq) ? row.max_seq + 1 : 1;
+      
+      // Generate 4-character hash from sequence (base36)
+      const hash = sequence.toString(36).toUpperCase().padStart(4, '0');
+      
+      // Calculate cycle (1-100, loops continuously)
+      const cycle = ((sequence - 1) % 100) + 1;
+      const cycleDisplay = cycle === 100 ? '00' : cycle.toString().padStart(2, '0');
+      
+      // Format: YEAR-HASH-CYCLE (e.g., 2026-0001-01)
+      const opNumber = `${year}-${hash}-${cycleDisplay}`;
+      
+      resolve({
+        op_number: opNumber,
+        op_hash: hash,
+        op_cycle: cycle,
+        op_sequence: sequence,
+        op_year: year
+      });
+    });
+  });
+}
+
+/* ==================================================
+   GET DOCTOR SETTINGS
+================================================== */
+router.get('/doctors/:id/settings', (req, res) => {
+  const { id } = req.params;
+  
+  const sql = `
+    SELECT 
+      id,
+      full_name,
+      consultation_fee,
+      review_days,
+      review_count,
+      emergency_surcharge
+    FROM users 
+    WHERE id = ? AND role = 'doctor' AND is_active = 1
+  `;
+  
+  db.get(sql, [id], (err, row) => {
+    if (err) {
+      console.error('❌ Error fetching doctor settings:', err.message);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (!row) {
+      return res.status(404).json({ error: 'Doctor not found' });
+    }
+    
+    res.json({ doctor: row });
+  });
+});
+
+/* ==================================================
+   CHECK REVIEW ELIGIBILITY
+================================================== */
+router.get('/patients/:patient_id/review-eligibility/:doctor_id', (req, res) => {
+  const { patient_id, doctor_id } = req.params;
+  
+  // Get last 'new' visit with this doctor
+  const sql = `
+    SELECT 
+      id,
+      visit_date,
+      visit_time
+    FROM op_register
+    WHERE patient_id = ? 
+      AND doctor_id = ? 
+      AND visit_type = 'new'
+    ORDER BY visit_date DESC, visit_time DESC
+    LIMIT 1
+  `;
+  
+  db.get(sql, [patient_id, doctor_id], (err, lastNewVisit) => {
+    if (err) {
+      console.error('❌ Error checking review eligibility:', err.message);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (!lastNewVisit) {
+      return res.json({
+        eligible: false,
+        reason: 'No previous visits',
+        reviews_used: 0,
+        days_remaining: 0
+      });
+    }
+    
+    // Get doctor's review settings
+    db.get('SELECT review_days, review_count FROM users WHERE id = ?', [doctor_id], (err, doctor) => {
+      if (err || !doctor) {
+        return res.json({ eligible: false, reason: 'Doctor settings not found' });
+      }
+      
+      // Calculate days since last new visit
+      const lastVisitDate = new Date(lastNewVisit.visit_date);
+      const today = new Date();
+      const daysSince = Math.floor((today - lastVisitDate) / (1000 * 60 * 60 * 24));
+      
+      // Count review visits after that new visit
+      const countSql = `
+        SELECT COUNT(*) as count
+        FROM op_register
+        WHERE patient_id = ?
+          AND doctor_id = ?
+          AND visit_type = 'review'
+          AND visit_date >= ?
+      `;
+      
+      db.get(countSql, [patient_id, doctor_id, lastNewVisit.visit_date], (err, countRow) => {
+        if (err) {
+          return res.json({ eligible: false, reason: 'Error counting reviews' });
+        }
+        
+        const reviewsUsed = countRow.count || 0;
+        const daysRemaining = doctor.review_days - daysSince;
+        
+        // Check eligibility
+        const eligible = daysSince <= doctor.review_days && reviewsUsed < doctor.review_count;
+        
+        res.json({
+          eligible: eligible,
+          reviews_used: reviewsUsed,
+          reviews_allowed: doctor.review_count,
+          days_remaining: daysRemaining > 0 ? daysRemaining : 0,
+          days_allowed: doctor.review_days,
+          last_new_visit_date: lastNewVisit.visit_date,
+          reason: !eligible ? (daysSince > doctor.review_days ? 'Review period expired' : 'Review limit reached') : null
+        });
+      });
+    });
+  });
+});
+
+/* ==================================================
+   GET ALL COMPLAINTS
+================================================== */
+router.get('/complaints', (req, res) => {
+  const sql = `
+    SELECT id, complaint_text 
+    FROM complaints_master 
+    ORDER BY complaint_text ASC
+  `;
+  
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      console.error('❌ Error fetching complaints:', err.message);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    res.json({ complaints: rows || [] });
+  });
+});
+
+/* ==================================================
+   ADD NEW COMPLAINT
+================================================== */
+router.post('/complaints', (req, res) => {
+  const { complaint_text } = req.body;
+  
+  if (!complaint_text || !complaint_text.trim()) {
+    return res.status(400).json({ error: 'Complaint text is required' });
+  }
+  
+  const text = complaint_text.trim().toUpperCase();
+  
+  const sql = `
+    INSERT INTO complaints_master (complaint_text, created_by)
+    VALUES (?, ?)
+  `;
+  
+  db.run(sql, [text, req.session.user.id], function(err) {
+    if (err) {
+      if (err.message.includes('UNIQUE')) {
+        return res.status(400).json({ error: 'This complaint already exists' });
+      }
+      console.error('❌ Error adding complaint:', err.message);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    res.json({
+      message: 'Complaint added successfully',
+      complaint: {
+        id: this.lastID,
+        complaint_text: text
+      }
+    });
+  });
+});
+
+/* ==================================================
+   CREATE OPD ENTRY (WITH TRANSACTION)
+================================================== */
+router.post('/opd/entry', async (req, res) => {
+  const {
+    patient_id,
+    visit_type,
+    doctor_id,
+    vitals_bp,
+    vitals_temp,
+    vitals_pulse,
+    vitals_rr,
+    vitals_spo2,
+    vitals_weight,
+    vitals_height,
+    vitals_hc,
+    vitals_muac,
+    chief_complaints,
+    previous_complaints,
+    consultation_fee,
+    payment_method,
+    paid_amount,
+    override_fee
+  } = req.body;
+
+  // Validation
+  if (!patient_id) {
+    return res.status(400).json({ error: 'Patient is required' });
+  }
+
+  if (!doctor_id) {
+    return res.status(400).json({ error: 'Doctor is required' });
+  }
+
+  if (!visit_type) {
+    return res.status(400).json({ error: 'Visit type is required' });
+  }
+
+  if (!chief_complaints || !chief_complaints.trim()) {
+    return res.status(400).json({ error: 'At least one complaint is required' });
+  }
+
+  try {
+    // Get patient details
+    const patient = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM patients WHERE id = ?', [patient_id], (err, row) => {
+        if (err) reject(err);
+        else if (!row) reject(new Error('Patient not found'));
+        else resolve(row);
+      });
+    });
+
+    // Generate OP Number
+    const opData = await generateOPNumber();
+
+    // Get current date and time
+    const now = new Date();
+    const visitDate = now.toISOString().split('T')[0];
+    const visitTime = now.toTimeString().split(' ')[0];
+
+    // Calculate age from DOB
+    let age = null;
+    if (patient.dob) {
+      const birthDate = new Date(patient.dob);
+      const today = new Date();
+      age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+    }
+
+    // Calculate final fee (use override if provided, otherwise use consultation_fee)
+    const finalFee = override_fee !== null && override_fee !== undefined ? parseFloat(override_fee) : parseFloat(consultation_fee || 0);
+    const paidAmt = parseFloat(paid_amount || 0);
+    const balanceAmt = finalFee - paidAmt;
+
+    // Determine payment status
+    let paymentStatus = 'pending';
+    if (paidAmt >= finalFee && finalFee > 0) {
+      paymentStatus = 'paid';
+    } else if (paidAmt > 0 && paidAmt < finalFee) {
+      paymentStatus = 'partial';
+    }
+
+    // BEGIN TRANSACTION
+    db.serialize(() => {
+      db.run('BEGIN TRANSACTION', (err) => {
+        if (err) {
+          console.error('❌ Transaction begin error:', err.message);
+          return res.status(500).json({ error: 'Transaction error' });
+        }
+
+        // Insert OP entry
+        const opSql = `
+          INSERT INTO op_register (
+            op_number, op_hash, op_cycle, op_sequence, op_year,
+            patient_id, regno, name, age, gender, father, mother, address, mobile,
+            visit_date, visit_time, visit_type,
+            vitals_bp, vitals_temp, vitals_pulse, vitals_rr, vitals_spo2,
+            vitals_weight, vitals_height, vitals_hc, vitals_muac,
+            chief_complaints, previous_complaints,
+            doctor_id, consultation_status, consultation_fee, payment_status, payment_method,
+            created_by
+          ) VALUES (
+            ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?, ?, ?, ?,
+            ?, ?, ?,
+            ?, ?, ?, ?, ?,
+            ?, ?, ?, ?,
+            ?, ?,
+            ?, ?, ?, ?, ?,
+            ?
+          )
+        `;
+
+        const opParams = [
+          opData.op_number, opData.op_hash, opData.op_cycle, opData.op_sequence, opData.op_year,
+          patient_id, patient.regno, patient.name, age, patient.gender,
+          patient.father, patient.mother, patient.address, patient.mobile,
+          visitDate, visitTime, visit_type,
+          vitals_bp, vitals_temp, vitals_pulse, vitals_rr, vitals_spo2,
+          vitals_weight, vitals_height, vitals_hc, vitals_muac,
+          chief_complaints, previous_complaints,
+          doctor_id, 'waiting', finalFee, paymentStatus, payment_method,
+          req.session.user.id
+        ];
+
+        db.run(opSql, opParams, function(opErr) {
+          if (opErr) {
+            console.error('❌ OP entry creation failed:', opErr.message);
+            db.run('ROLLBACK');
+            return res.status(500).json({ error: 'Failed to create OPD entry. Please try again.' });
+          }
+
+          const opRegisterId = this.lastID;
+
+          // Insert payment record if amount > 0
+          if (finalFee > 0) {
+            const paymentSql = `
+              INSERT INTO payments (
+                reference_type, reference_id, amount,
+                payment_method, payment_status,
+                paid_amount, balance_amount, payment_date,
+                created_by
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `;
+
+            const paymentParams = [
+              'opd',
+              opRegisterId,
+              finalFee,
+              payment_method || null,
+              paymentStatus,
+              paidAmt,
+              balanceAmt,
+              paymentStatus !== 'pending' ? visitDate : null,
+              req.session.user.id
+            ];
+
+            db.run(paymentSql, paymentParams, function(payErr) {
+              if (payErr) {
+                console.error('❌ Payment creation failed:', payErr.message);
+                db.run('ROLLBACK');
+                return res.status(500).json({ error: 'Payment processing failed. Please make entry again.' });
+              }
+
+              // COMMIT TRANSACTION
+              db.run('COMMIT', (commitErr) => {
+                if (commitErr) {
+                  console.error('❌ Transaction commit error:', commitErr.message);
+                  db.run('ROLLBACK');
+                  return res.status(500).json({ error: 'Transaction error. Please try again.' });
+                }
+
+                res.json({
+                  message: 'OPD entry created successfully',
+                  op_register_id: opRegisterId,
+                  op_number: opData.op_number,
+                  payment_id: this.lastID
+                });
+              });
+            });
+          } else {
+            // No payment needed (free review or zero fee)
+            db.run('COMMIT', (commitErr) => {
+              if (commitErr) {
+                console.error('❌ Transaction commit error:', commitErr.message);
+                db.run('ROLLBACK');
+                return res.status(500).json({ error: 'Transaction error. Please try again.' });
+              }
+
+              res.json({
+                message: 'OPD entry created successfully',
+                op_register_id: opRegisterId,
+                op_number: opData.op_number
+              });
+            });
+          }
+        });
+      });
+    });
+
+  } catch (error) {
+    console.error('❌ OPD entry error:', error);
+    res.status(500).json({ error: error.message || 'Failed to create OPD entry' });
+  }
+});
+
+/* ==================================================
+   GET PATIENT OPD HISTORY
+================================================== */
+router.get('/opd/patient-history/:patient_id', (req, res) => {
+  const { patient_id } = req.params;
+  const { limit = 10 } = req.query;
+
+  const sql = `
+    SELECT 
+      op.*,
+      u.full_name as doctor_name
+    FROM op_register op
+    LEFT JOIN users u ON op.doctor_id = u.id
+    WHERE op.patient_id = ?
+    ORDER BY op.visit_date DESC, op.visit_time DESC
+    LIMIT ?
+  `;
+
+  db.all(sql, [patient_id, parseInt(limit)], (err, rows) => {
+    if (err) {
+      console.error('❌ Patient history error:', err.message);
+      return res.status(500).json({ error: 'Failed to fetch patient history' });
+    }
+
+    res.json({ visits: rows || [] });
+  });
+});
+
+/* ==================================================
+   GET TODAY'S OPD STATS
+================================================== */
+router.get('/opd/today-stats', (req, res) => {
+  const today = new Date().toISOString().split('T')[0];
+
+  const sql = `
+    SELECT 
+      COUNT(*) as total,
+      SUM(CASE WHEN visit_type = 'new' THEN 1 ELSE 0 END) as new,
+      SUM(CASE WHEN visit_type IN ('review') THEN 1 ELSE 0 END) as review,
+      SUM(CASE WHEN visit_type = 'emergency' THEN 1 ELSE 0 END) as emergency,
+      SUM(CASE WHEN consultation_status = 'waiting' THEN 1 ELSE 0 END) as waiting
+    FROM op_register
+    WHERE DATE(visit_date) = ?
+  `;
+
+  db.get(sql, [today], (err, row) => {
+    if (err) {
+      console.error('❌ Stats error:', err.message);
+      return res.status(500).json({ error: 'Failed to fetch stats' });
+    }
+
+    res.json({ 
+      stats: {
+        total: row.total || 0,
+        new: row.new || 0,
+        review: row.review || 0,
+        emergency: row.emergency || 0,
+        waiting: row.waiting || 0
+      }
+    });
+  });
+});
+

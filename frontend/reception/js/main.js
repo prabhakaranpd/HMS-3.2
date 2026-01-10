@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   ImportExport.init();
   ViewRecords.init();
   LegacyViewer.init();
+  OPDEntry.init();  // ← ADD THIS LINE
 
   // Load queue count
   Register.loadQueueCount();

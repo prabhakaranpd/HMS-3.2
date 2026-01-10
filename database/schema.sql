@@ -12,6 +12,10 @@ CREATE TABLE IF NOT EXISTS users (
   full_name TEXT,
   role TEXT NOT NULL CHECK(role IN ('admin', 'reception', 'doctor', 'nurse', 'lab', 'pharmacy', 'management')),
   is_active INTEGER DEFAULT 1,
+  consultation_fee REAL DEFAULT 200,
+  review_days INTEGER DEFAULT 4,
+  review_count INTEGER DEFAULT 4,
+  emergency_surcharge REAL DEFAULT 100,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
@@ -66,6 +70,18 @@ CREATE TABLE IF NOT EXISTS patients (
 );
 
 -- ==============================================
+-- COMPLAINTS MASTER
+-- ==============================================
+
+CREATE TABLE IF NOT EXISTS complaints_master (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  complaint_text TEXT NOT NULL UNIQUE,
+  created_by INTEGER,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (created_by) REFERENCES users(id)
+);
+
+-- ==============================================
 -- OP REGISTER
 -- ==============================================
 
@@ -111,12 +127,32 @@ CREATE TABLE IF NOT EXISTS op_register (
   consultation_status TEXT DEFAULT 'waiting',
   consultation_fee REAL DEFAULT 0,
   payment_status TEXT DEFAULT 'pending',
+  payment_method TEXT,
   
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   created_by INTEGER,
   
   FOREIGN KEY (patient_id) REFERENCES patients(id),
   FOREIGN KEY (doctor_id) REFERENCES users(id)
+);
+
+-- ==============================================
+-- PAYMENTS
+-- ==============================================
+
+CREATE TABLE IF NOT EXISTS payments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  reference_type TEXT NOT NULL CHECK(reference_type IN ('opd', 'lab', 'pharmacy', 'procedure')),
+  reference_id INTEGER NOT NULL,
+  amount REAL NOT NULL,
+  payment_method TEXT,
+  payment_status TEXT DEFAULT 'pending' CHECK(payment_status IN ('pending', 'paid', 'partial')),
+  paid_amount REAL DEFAULT 0,
+  balance_amount REAL DEFAULT 0,
+  payment_date TEXT,
+  created_by INTEGER,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (created_by) REFERENCES users(id)
 );
 
 -- ==============================================
@@ -255,11 +291,25 @@ INSERT OR IGNORE INTO system_settings (key, value) VALUES ('auto_backup_enabled'
 INSERT OR IGNORE INTO system_settings (key, value) VALUES ('auto_backup_time', '23:00');
 INSERT OR IGNORE INTO system_settings (key, value) VALUES ('backup_retention_days', '30');
 
+-- Seed Complaints Master Data
+INSERT OR IGNORE INTO complaints_master (complaint_text) VALUES ('FEVER');
+INSERT OR IGNORE INTO complaints_master (complaint_text) VALUES ('COUGH');
+INSERT OR IGNORE INTO complaints_master (complaint_text) VALUES ('COLD');
+INSERT OR IGNORE INTO complaints_master (complaint_text) VALUES ('HEADACHE');
+INSERT OR IGNORE INTO complaints_master (complaint_text) VALUES ('BODY PAIN');
+INSERT OR IGNORE INTO complaints_master (complaint_text) VALUES ('ABDOMINAL PAIN');
+INSERT OR IGNORE INTO complaints_master (complaint_text) VALUES ('VOMITING');
+INSERT OR IGNORE INTO complaints_master (complaint_text) VALUES ('DIARRHEA');
+INSERT OR IGNORE INTO complaints_master (complaint_text) VALUES ('RASH');
+INSERT OR IGNORE INTO complaints_master (complaint_text) VALUES ('WEAKNESS');
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_patients_regno ON patients(regno);
 CREATE INDEX IF NOT EXISTS idx_op_register_patient_id ON op_register(patient_id);
 CREATE INDEX IF NOT EXISTS idx_op_register_visit_date ON op_register(visit_date);
+CREATE INDEX IF NOT EXISTS idx_op_register_doctor_id ON op_register(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_payments_reference ON payments(reference_type, reference_id);
 CREATE INDEX IF NOT EXISTS idx_vaccine_register_patient_id ON vaccine_register(patient_id);
 CREATE INDEX IF NOT EXISTS idx_followup_register_patient_id ON followup_register(patient_id);
 CREATE INDEX IF NOT EXISTS idx_login_history_user_id ON login_history(user_id);

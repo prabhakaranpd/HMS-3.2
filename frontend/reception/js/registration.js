@@ -1,5 +1,6 @@
 /**
  * HMS 3.0 - Registration Modal Logic
+ * FIXED: Changed OPDEntry to OPDEntryModal on line 117
  */
 
 const Registration = {
@@ -163,6 +164,7 @@ const Registration = {
 
   /**
    * Create New Visit from Success Modal
+   * FIXED: Changed OPDEntry to OPDEntryModal
    */
   async createNewVisit(patientId) {
     try {
@@ -172,8 +174,8 @@ const Registration = {
       // Close success modal
       this.closeSuccess();
       
-      // Open OPD modal for new visit
-      OPDEntry.openModal(patient, 'new');
+      // Open OPD modal for new visit - FIXED HERE
+      OPDEntryModal.openModal(patient, 'new');
       
     } catch (error) {
       Utils.showToast('Failed to load patient data', 'error');

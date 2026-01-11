@@ -1,6 +1,7 @@
 /**
  * HMS 3.0 - OPD Entry Modal Templates
  * HTML templates using template literals
+ * FIXED: Changed all OPDEntry references to OPDEntryModal
  */
 
 const OPDTemplates = {
@@ -21,7 +22,7 @@ const OPDTemplates = {
         <div class="modal-container opd-modal">
           <div class="modal-header">
             <h3>${modalTitle} - ${patient.name}</h3>
-            <button type="button" class="modal-close" onclick="OPDEntry.closeModal()">✖️</button>
+            <button type="button" class="modal-close" onclick="OPDEntryModal.closeModal()">✖️</button>
           </div>
           
           <div class="modal-body">
@@ -47,10 +48,10 @@ const OPDTemplates = {
           </div>
 
           <div class="modal-footer">
-            <button type="button" class="btn-modern btn-secondary" onclick="OPDEntry.showPreviousVisits()">
+            <button type="button" class="btn-modern btn-secondary" onclick="OPDEntryModal.showPreviousVisits()">
               📅 Previous Visits
             </button>
-            <button type="button" class="btn-modern btn-primary" onclick="OPDEntry.saveEntry()" id="opdSaveBtn">
+            <button type="button" class="btn-modern btn-primary" onclick="OPDEntryModal.saveEntry()" id="opdSaveBtn">
               💾 Save Entry
             </button>
           </div>
@@ -104,7 +105,7 @@ const OPDTemplates = {
   doctorFeeSection(visitType, doctorId, reviewData) {
     return `
       <div class="collapsible-section">
-        <div class="collapsible-header active" onclick="OPDEntry.toggleSection(this)">
+        <div class="collapsible-header active" onclick="OPDEntryModal.toggleSection(this)">
           <div class="collapsible-title">👨‍⚕️ Doctor & Fee</div>
           <div class="collapsible-arrow">▼</div>
         </div>
@@ -171,7 +172,7 @@ const OPDTemplates = {
   vitalsSection() {
     return `
       <div class="collapsible-section">
-        <div class="collapsible-header" onclick="OPDEntry.toggleSection(this)">
+        <div class="collapsible-header" onclick="OPDEntryModal.toggleSection(this)">
           <div class="collapsible-title">🩺 Vitals (Optional)</div>
           <div class="collapsible-arrow">▼</div>
         </div>
@@ -225,7 +226,7 @@ const OPDTemplates = {
   complaintsSection(visitType) {
     return `
       <div class="collapsible-section">
-        <div class="collapsible-header active" onclick="OPDEntry.toggleSection(this)">
+        <div class="collapsible-header active" onclick="OPDEntryModal.toggleSection(this)">
           <div class="collapsible-title">💬 Complaints <span class="required">*</span></div>
           <div class="collapsible-arrow">▼</div>
         </div>
@@ -234,7 +235,7 @@ const OPDTemplates = {
           <div class="form-group mb-3">
             <label class="form-label">Chief Complaints <span class="required">*</span></label>
             <div class="complaints-dropdown-container">
-              <div class="complaints-dropdown-trigger" onclick="OPDEntry.toggleComplaintsDropdown()" id="opdComplaintsTrigger">
+              <div class="complaints-dropdown-trigger" onclick="OPDEntryModal.toggleComplaintsDropdown()" id="opdComplaintsTrigger">
                 <span class="selected-complaints-display placeholder" id="opdSelectedComplaints">
                   Select complaints...
                 </span>
@@ -247,7 +248,7 @@ const OPDTemplates = {
                 <div class="add-complaint-section">
                   <input type="text" class="add-complaint-input" id="opdNewComplaintInput" 
                          placeholder="Type new complaint..." style="text-transform: uppercase;">
-                  <button type="button" class="btn-add-complaint" onclick="OPDEntry.addNewComplaint()">
+                  <button type="button" class="btn-add-complaint" onclick="OPDEntryModal.addNewComplaint()">
                     ➕ Add to List
                   </button>
                 </div>
@@ -274,7 +275,7 @@ const OPDTemplates = {
   paymentSection() {
     return `
       <div class="collapsible-section">
-        <div class="collapsible-header active" onclick="OPDEntry.toggleSection(this)">
+        <div class="collapsible-header active" onclick="OPDEntryModal.toggleSection(this)">
           <div class="collapsible-title">💰 Payment</div>
           <div class="collapsible-arrow">▼</div>
         </div>
@@ -372,10 +373,10 @@ const OPDTemplates = {
           </div>
 
           <div class="modal-footer">
-            <button type="button" class="btn-modern btn-secondary" onclick="OPDEntry.printOPSlip()">
+            <button type="button" class="btn-modern btn-secondary" onclick="OPDEntryModal.printOPSlip()">
               🖨️ Print OP Slip
             </button>
-            <button type="button" class="btn-modern btn-primary" onclick="OPDEntry.closeSuccess()">
+            <button type="button" class="btn-modern btn-primary" onclick="OPDEntryModal.closeSuccess()">
               ✓ Close
             </button>
           </div>
@@ -393,7 +394,7 @@ const OPDTemplates = {
         <div class="modal-container previous-visits-modal">
           <div class="modal-header">
             <h3>📅 Previous Visits - ${patientName}</h3>
-            <button type="button" class="modal-close" onclick="OPDEntry.closePreviousVisits()">✖️</button>
+            <button type="button" class="modal-close" onclick="OPDEntryModal.closePreviousVisits()">✖️</button>
           </div>
           
           <div class="modal-body">
@@ -416,7 +417,7 @@ const OPDTemplates = {
           </div>
 
           <div class="modal-footer">
-            <button type="button" class="btn-modern btn-secondary" onclick="OPDEntry.closePreviousVisits()">
+            <button type="button" class="btn-modern btn-secondary" onclick="OPDEntryModal.closePreviousVisits()">
               Close
             </button>
           </div>

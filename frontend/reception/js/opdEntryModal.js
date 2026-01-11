@@ -1,5 +1,6 @@
 /**
  * HMS 3.0 - OPD Entry Modal Logic
+ * FIXED: Balance calculation and amount parsing bugs
  */
 
 const OPDEntryModal = {
@@ -305,35 +306,48 @@ const OPDEntryModal = {
 
   /**
    * Update Final Amount
+   * FIXED: Properly calculate and update all amounts and balance
    */
   updateFinalAmount() {
-    const override = document.getElementById('opdOverrideFee').value;
+    const overrideInput = document.getElementById('opdOverrideFee');
+    const override = overrideInput.value.trim();
     const calculated = parseFloat(document.getElementById('opdCalculatedFee').value || 0);
 
+    // Use override if provided, otherwise use calculated
     const finalAmount = override ? parseFloat(override) : calculated;
 
+    // Update final amount display
     document.getElementById('opdFinalAmount').textContent = `₹${finalAmount.toFixed(2)}`;
     document.getElementById('opdAmountToPay').textContent = `₹${finalAmount.toFixed(2)}`;
 
-    // Auto-set paid amount to final amount if it's currently 0
+    // Auto-set paid amount to final amount if it's currently 0 or empty
     const paidInput = document.getElementById('opdPaidAmount');
-    if (parseFloat(paidInput.value || 0) === 0) {
+    const currentPaid = parseFloat(paidInput.value || 0);
+    
+    if (currentPaid === 0) {
       paidInput.value = finalAmount.toFixed(2);
     }
 
+    // Recalculate balance
     this.calculateBalance();
   },
 
   /**
    * Calculate Balance
+   * FIXED: Properly parse amounts from display elements and input fields
    */
   calculateBalance() {
-    const finalText = document.getElementById('opdFinalAmount').textContent;
-    const finalAmount = parseFloat(finalText.replace('₹', ''));
+    // Get final amount (strip ₹ symbol and parse)
+    const finalAmountText = document.getElementById('opdFinalAmount').textContent;
+    const finalAmount = parseFloat(finalAmountText.replace('₹', '').trim()) || 0;
+    
+    // Get paid amount from input
     const paidAmount = parseFloat(document.getElementById('opdPaidAmount').value || 0);
 
+    // Calculate balance
     const balance = finalAmount - paidAmount;
 
+    // Update balance display
     document.getElementById('opdBalance').textContent = `₹${balance.toFixed(2)}`;
   },
 
@@ -362,8 +376,10 @@ const OPDEntryModal = {
       return;
     }
 
+    // Get final amount (strip ₹ symbol)
     const finalAmountText = document.getElementById('opdFinalAmount').textContent;
-    const finalAmount = parseFloat(finalAmountText.replace('₹', ''));
+    const finalAmount = parseFloat(finalAmountText.replace('₹', '').trim()) || 0;
+    
     const paidAmount = parseFloat(document.getElementById('opdPaidAmount').value || 0);
 
     const paymentMethod = document.querySelector('input[name="opdPaymentMethod"]:checked')?.value;

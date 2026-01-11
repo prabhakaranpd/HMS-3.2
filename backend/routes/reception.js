@@ -1,3 +1,7 @@
+/* ==================================================
+   Reception JS backend file backend/rotes/reception.js
+================================================== */
+
 const express = require('express');
 const db = require('../config/db');
 const { requireLogin, requireRole } = require('../middleware/auth');
@@ -2045,118 +2049,6 @@ function generateOPNumber() {
 /* ==================================================
    CREATE OPD ENTRY
 ================================================== */
-router.post('/opd/entry', async (req, res) => {
-  const {
-    patient_id,
-    visit_type,
-    doctor_id,
-    vitals_bp,
-    vitals_temp,
-    vitals_pulse,
-    vitals_rr,
-    vitals_spo2,
-    vitals_weight,
-    vitals_height,
-    vitals_hc,
-    vitals_muac,
-    chief_complaints,
-    previous_complaints,
-    consultation_fee,
-    payment_status
-  } = req.body;
-
-  // Validation
-  if (!patient_id) {
-    return res.status(400).json({ error: 'Patient ID is required' });
-  }
-
-  if (!doctor_id) {
-    return res.status(400).json({ error: 'Doctor is required' });
-  }
-
-  try {
-    // Get patient details
-    const patient = await new Promise((resolve, reject) => {
-      db.get('SELECT * FROM patients WHERE id = ?', [patient_id], (err, row) => {
-        if (err) reject(err);
-        else if (!row) reject(new Error('Patient not found'));
-        else resolve(row);
-      });
-    });
-
-    // Generate OP Number
-    const opData = await generateOPNumber();
-
-    // Get current date and time
-    const now = new Date();
-    const visitDate = now.toISOString().split('T')[0];
-    const visitTime = now.toTimeString().split(' ')[0];
-
-    // Calculate age from DOB
-    let age = null;
-    if (patient.dob) {
-      const birthDate = new Date(patient.dob);
-      const today = new Date();
-      age = today.getFullYear() - birthDate.getFullYear();
-      const monthDiff = today.getMonth() - birthDate.getMonth();
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-      }
-    }
-
-    // Insert OP entry
-    const sql = `
-      INSERT INTO op_register (
-        op_number, op_hash, op_cycle, op_sequence, op_year,
-        patient_id, regno, name, age, gender, father, mother, address, mobile,
-        visit_date, visit_time, visit_type,
-        vitals_bp, vitals_temp, vitals_pulse, vitals_rr, vitals_spo2,
-        vitals_weight, vitals_height, vitals_hc, vitals_muac,
-        chief_complaints, previous_complaints,
-        doctor_id, consultation_status, consultation_fee, payment_status,
-        created_by
-      ) VALUES (
-        ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?,
-        ?, ?, ?, ?, ?,
-        ?, ?, ?, ?,
-        ?, ?,
-        ?, ?, ?, ?,
-        ?
-      )
-    `;
-
-    const params = [
-      opData.op_number, opData.op_hash, opData.op_cycle, opData.op_sequence, opData.op_year,
-      patient_id, patient.regno, patient.name, age, patient.gender,
-      patient.father, patient.mother, patient.address, patient.mobile,
-      visitDate, visitTime, visit_type || 'new',
-      vitals_bp, vitals_temp, vitals_pulse, vitals_rr, vitals_spo2,
-      vitals_weight, vitals_height, vitals_hc, vitals_muac,
-      chief_complaints, previous_complaints,
-      doctor_id, 'waiting', consultation_fee || 0, payment_status || 'pending',
-      req.session.user.id
-    ];
-
-    db.run(sql, params, function(err) {
-      if (err) {
-        console.error('❌ OPD entry creation failed:', err.message);
-        return res.status(500).json({ error: 'Failed to create OPD entry' });
-      }
-
-      res.json({
-        message: 'OPD entry created successfully',
-        op_register_id: this.lastID,
-        op_number: opData.op_number
-      });
-    });
-
-  } catch (error) {
-    console.error('❌ OPD entry error:', error);
-    res.status(500).json({ error: error.message || 'Failed to create OPD entry' });
-  }
-});
 
 /* ==================================================
    GET PATIENT OPD HISTORY
